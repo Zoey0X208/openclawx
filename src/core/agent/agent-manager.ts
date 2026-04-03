@@ -18,6 +18,8 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import { platform } from "node:os";
 import { createWindowsShellOperations } from "../tools/windows-shell.js";
+import { emitBashHooks } from "../tools/bash-hook.js";
+import "../tools/security-hook.js"; // 注册内置安全 hook
 import { createCompactionMemoryExtensionFactory } from "../memory/compaction-extension.js";
 import { loadExtensionFactories } from "../extensions/index.js";
 import { addMemory } from "../memory/index.js";
@@ -375,7 +377,13 @@ For downloads, provide either a direct URL or a selector to click.`;
             bash:
                 platform() === "win32"
                     ? createBashTool(sessionWorkspaceDir, { operations: createWindowsShellOperations() })
-                    : createBashTool(sessionWorkspaceDir),
+                    : createBashTool(sessionWorkspaceDir, {
+                        spawnHook: (spawnCtx) => {
+                            const hookCtx = { sessionId, agentId, command: spawnCtx.command, cwd: spawnCtx.cwd, timestamp: Date.now() };
+                            emitBashHooks(hookCtx);
+                            return { ...spawnCtx, command: hookCtx.command };
+                        },
+                    }),
             find: createFindTool(sessionWorkspaceDir),
             grep: createGrepTool(sessionWorkspaceDir),
             ls: createLsTool(sessionWorkspaceDir),
@@ -466,6 +474,18 @@ For downloads, provide either a direct URL or a selector to click.`;
             customTools,
             baseToolsOverride: coreTools,
         } as any);
+
+        // Inject our coreTools (including the runcon-wrapped bash) into the session's
+        // internal tool registry, overriding the SDK defaults built by createAgentSession.
+        const sessionAny = session as any;
+        sessionAny._baseToolsOverride = coreTools;
+        // Rebuild runtime so the override takes effect immediately.
+        if (typeof sessionAny._buildRuntime === "function") {
+            sessionAny._buildRuntime({
+                activeToolNames: Object.keys(coreTools),
+                includeAllExtensionTools: true,
+            });
+        }
 
         const model = modelRegistry.find(provider, modelId);
         if (model) {
