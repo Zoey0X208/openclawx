@@ -5,11 +5,11 @@
 
 /** Bash Hook 收到的 payload */
 export interface BashHookContext {
-    sessionId: string;
-    agentId: string;
-    command: string;   // handler 可直接修改
-    cwd: string;
-    timestamp: number;
+    sessionId: string;   // 业务会话 ID（桌面 UUID / 飞书 threadId 等）
+    agentId: string;     // 当前智能体 ID
+    command: string;     // 原始命令，handler 可直接修改
+    cwd: string;         // 命令执行的工作目录
+    timestamp: number;   // 触发时间戳（Date.now()），供审计/监控使用
 }
 
 /** Bash Hook 处理函数（同步，以兼容 SDK 的 spawnHook） */
