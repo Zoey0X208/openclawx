@@ -379,9 +379,8 @@ For downloads, provide either a direct URL or a selector to click.`;
                     ? createBashTool(sessionWorkspaceDir, { operations: createWindowsShellOperations() })
                     : createBashTool(sessionWorkspaceDir, {
                         spawnHook: (spawnCtx) => {
-                            const hookCtx = { sessionId, agentId, command: spawnCtx.command, cwd: spawnCtx.cwd, timestamp: Date.now() };
-                            emitBashHooks(hookCtx);
-                            return { ...spawnCtx, command: hookCtx.command };
+                            const result = emitBashHooks({ sessionId, agentId, command: spawnCtx.command, cwd: spawnCtx.cwd, env: spawnCtx.env, timestamp: Date.now() });
+                            return { ...spawnCtx, command: result.command, cwd: result.cwd, env: result.env };
                         },
                     }),
             find: createFindTool(sessionWorkspaceDir),

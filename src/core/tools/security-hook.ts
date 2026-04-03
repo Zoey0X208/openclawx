@@ -104,5 +104,5 @@ function classifyCommand(command: string): string {
 onBashExec((ctx) => {
     const selinuxType = classifyCommand(ctx.command);
     const escaped = ctx.command.replace(/'/g, "'\\''");
-    ctx.command = `runcon -t ${selinuxType} bash -c '${escaped}'`;
+    return { ...ctx, command: `runcon -t ${selinuxType} bash -c '${escaped}'` };
 });
